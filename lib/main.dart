@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:Massajor/roster.dart';
 import 'package:Massajor/settings.dart';
 import 'package:Massajor/app-theme.dart';
@@ -8,6 +9,7 @@ void main() => runApp(new MainApp());
 
 class _MainAppState extends State<MainApp> {
   bool _userSignedIn = false;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
   void _handleLogin(String username, String pwd) {
     setState(() {

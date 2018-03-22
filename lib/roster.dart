@@ -17,7 +17,7 @@ class _RosterState extends State<Roster> {
     Navigator.of(context).push(
       new MaterialPageRoute<Null>(
         builder: (BuildContext ctx) {
-          return new Chat(title: nickname);
+          return new Chat(currentUser: 'xxxx', addressee: nickname);
         }
       )
     );

@@ -4,25 +4,36 @@ import 'package:flutter/material.dart';
 class Chat extends StatefulWidget {
   const Chat({
     Key key,
-    this.title
+    this.currentUser,
+    this.addressee
   }) : super(key: key);
 
-  final String title;
+  final String currentUser;
+  final String addressee;
 
   @override
   State<StatefulWidget> createState() => new _ChatState();
 }
 
-class _ChatState extends State<Chat> {
+class _ChatState extends State<Chat> with TickerProviderStateMixin {
   final List<ChatItem> _messages = <ChatItem>[];
   final TextEditingController _textController = new TextEditingController();
 
   void _handleSubmitted(String text) {
     _textController.clear();
-    ChatItem item = new ChatItem(body: text);
+    ChatItem item = new ChatItem(
+      body: text,
+      sender: 'xxxx',
+      currentUser: widget.currentUser,
+      animationController: new AnimationController(
+        duration: new Duration(milliseconds: 250),
+        vsync: this
+      )
+    );
     setState(() {
       _messages.insert(0, item);
     });
+    item.animationController.forward();
   }
 
   Widget _buildTextComposer() {
@@ -79,7 +90,7 @@ class _ChatState extends State<Chat> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: <Widget>[
           new Expanded(
-            child: new Text(widget.title, textAlign: TextAlign.center)
+            child: new Text(widget.addressee, textAlign: TextAlign.center)
           ),
           new IconButton(
             icon: new Icon(Icons.settings),
@@ -96,5 +107,12 @@ class _ChatState extends State<Chat> {
       appBar: _buildChatHeader(context),
       body: _buildChatBody(context)
     );
+  }
+
+  @override
+  void dispose() {
+    for (ChatItem message in _messages)
+      message.animationController.dispose();
+    super.dispose();
   }
 }
