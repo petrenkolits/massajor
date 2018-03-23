@@ -1,0 +1,42 @@
+{
+  "project_info": {
+    "project_number": "197496323921",
+    "firebase_url": "https://massajor-9e764.firebaseio.com",
+    "project_id": "massajor-9e764",
+    "storage_bucket": "massajor-9e764.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:197496323921:android:86a60655fd224ecb",
+        "android_client_info": {
+          "package_name": "com.litslink.massajor"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "197496323921-jobs4ufcd1id5q0daahv4cv2mbl1s299.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCEe1EPN4v9nx2tPbLUgl98UPMnRxhe3AQ"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 1,
+          "other_platform_oauth_client": []
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

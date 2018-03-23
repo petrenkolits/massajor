@@ -13,11 +13,11 @@ class Login extends StatelessWidget {
   final TextEditingController _pwdController = new TextEditingController();
 
   void _handleSignIn() {
-    _usernameController.clear();
-    _pwdController.clear();
     if (onLogin != null) {
       onLogin(_usernameController.text, _pwdController.text);
     }
+    _usernameController.clear();
+    _pwdController.clear();
   }
 
   Widget _buildForm() {
