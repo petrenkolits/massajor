@@ -1,10 +1,17 @@
 import 'package:Massajor/chat.dart';
 import 'package:Massajor/roster-item.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'dart:math';
 
 class Roster extends StatefulWidget {
+  const Roster({
+    Key key,
+    this.user
+  }) : super(key: key);
+
   final String title = 'Title';
+  final FirebaseUser user;
 
   @override
   State<StatefulWidget> createState() => new _RosterState();
@@ -17,7 +24,7 @@ class _RosterState extends State<Roster> {
     Navigator.of(context).push(
       new MaterialPageRoute<Null>(
         builder: (BuildContext ctx) {
-          return new Chat(currentUser: 'xxxx', addressee: nickname);
+          return new Chat(user: widget.user, addressee: 'rrrrr');
         }
       )
     );
@@ -45,12 +52,12 @@ class _RosterState extends State<Roster> {
               child: new Text('Massajor', textAlign: TextAlign.center)
             ),
             new IconButton(
-              icon: new Icon(Icons.settings),
-              onPressed: () => Navigator.of(context).pushNamed('/settings')
+              icon: new Icon(Icons.person_add),
+              onPressed: _addItem
             ),
             new IconButton(
-              icon: new Icon(Icons.add),
-              onPressed: _addItem
+              icon: new Icon(Icons.settings),
+              onPressed: () => Navigator.of(context).pushNamed('/settings')
             )
           ],
         ),

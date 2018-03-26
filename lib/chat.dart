@@ -1,14 +1,17 @@
 import 'package:Massajor/chat-item.dart';
+import 'package:Massajor/db-service.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 class Chat extends StatefulWidget {
   const Chat({
     Key key,
-    this.currentUser,
+    this.user,
     this.addressee
   }) : super(key: key);
 
-  final String currentUser;
+  final FirebaseUser user;
   final String addressee;
 
   @override
@@ -18,22 +21,49 @@ class Chat extends StatefulWidget {
 class _ChatState extends State<Chat> with TickerProviderStateMixin {
   final List<ChatItem> _messages = <ChatItem>[];
   final TextEditingController _textController = new TextEditingController();
+  final DbService dbService = new DbService();
 
-  void _handleSubmitted(String text) {
-    _textController.clear();
+  @override
+  initState() {
+    dbService.loadMessages(widget.user.uid, widget.addressee)
+      .then((QuerySnapshot s) {
+        s.documents.forEach((DocumentSnapshot d) {
+          setState(() {
+            _messages.insert(0, _buildItem(
+              d.data['sender'],
+              d.data['addressee'],
+              d.data['body'],
+              d.data['createdAt']
+            ));
+          });
+        });
+      });
+    super.initState();
+  }
+
+  ChatItem _buildItem(String sender, String addressee, String body, DateTime createdAt) {
     ChatItem item = new ChatItem(
-      body: text,
-      sender: 'xxxx',
-      currentUser: widget.currentUser,
+      sender: sender,
+      addressee: addressee,
+      body: body,
+      createdAt: createdAt,
+      isIncoming: widget.user.uid == addressee,
       animationController: new AnimationController(
         duration: new Duration(milliseconds: 250),
         vsync: this
       )
     );
+    item.animationController.forward();
+    return item;
+  }
+
+  void _handleSubmitted(String text) {
+    _textController.clear();
+    dbService.sendMessage(widget.user.uid, widget.addressee, text);
+    ChatItem item = _buildItem(widget.user.uid, widget.addressee, text, new DateTime.now());
     setState(() {
       _messages.insert(0, item);
     });
-    item.animationController.forward();
   }
 
   Widget _buildTextComposer() {
@@ -55,7 +85,8 @@ class _ChatState extends State<Chat> with TickerProviderStateMixin {
               margin: new EdgeInsets.symmetric(horizontal: 4.0),
               child: new IconButton(
                 icon: new Icon(Icons.send),
-                onPressed: () => _handleSubmitted(_textController.text)),
+                onPressed: () => _handleSubmitted(_textController.text)
+              ),
             ),
           ],
         ),
