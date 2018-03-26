@@ -37,6 +37,10 @@ class DbService {
       .orderBy('createdAt').getDocuments();
   }
 
+  Stream<QuerySnapshot> getListener(String addresseeUID) {
+    return _msgReference.where('addressee', isEqualTo: addresseeUID).snapshots;
+  }
+
   Future<String> _getToken(String uid) async {
     print("Got UID: '$uid'");
     var client = new HttpClient();

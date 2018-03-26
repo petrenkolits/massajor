@@ -1,8 +1,11 @@
+import 'package:Massajor/add-contact.dart';
 import 'package:Massajor/chat.dart';
+import 'package:Massajor/db-service.dart';
 import 'package:Massajor/roster-item.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'dart:math';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class Roster extends StatefulWidget {
   const Roster({
@@ -10,7 +13,6 @@ class Roster extends StatefulWidget {
     this.user
   }) : super(key: key);
 
-  final String title = 'Title';
   final FirebaseUser user;
 
   @override
@@ -19,26 +21,77 @@ class Roster extends StatefulWidget {
 
 class _RosterState extends State<Roster> {
   final List<RosterItem> _contacts = <RosterItem>[];
+  final DbService dbService = new DbService();
+
+  get storeKey {
+    return 'contacts_${widget.user.uid}';
+  }
+
+  void _storeItemToPrefs(String uid) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    var uids = prefs.getStringList(storeKey) ?? <String>[];
+    uids.add(uid);
+    prefs.setStringList(storeKey, uids);
+  }
+
+  RosterItem _buildRosterItem(String uid) {
+    return new RosterItem(
+      key: new Key(uid),
+      nickname: uid,
+      lastMessage: 'Last msg',
+      onTap: (String _uid) {_rosterItemTap(_uid);}
+    );
+  }
+
+  void _loadRosterFromPrefs() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    (prefs.getStringList(storeKey) ?? <String>[]).forEach((String uid) {
+      RosterItem item = _buildRosterItem(uid);
+      setState(() {
+        _contacts.add(item);
+      });
+    });
+  }
 
   void _rosterItemTap(String nickname) {
     Navigator.of(context).push(
       new MaterialPageRoute<Null>(
         builder: (BuildContext ctx) {
-          return new Chat(user: widget.user, addressee: 'rrrrr');
+          return new Chat(user: widget.user, addressee: nickname);
         }
       )
     );
   }
 
-  void _addItem() {
-    RosterItem item = new RosterItem(
-      nickname: 'Some nick ${new Random().nextInt(2000)}',
-      lastMessage: 'Last msg',
-      onTap: _rosterItemTap
+  void _addContact() {
+    Navigator.of(context).push(
+      new MaterialPageRoute<Null>(
+        builder: (BuildContext ctx) {
+          return new AddContact(onContactAdd: (String nickname) {
+            RosterItem item = _buildRosterItem(nickname);
+            _storeItemToPrefs(nickname);
+            setState(() {
+              _contacts.add(item);
+            });
+            Navigator.of(context).pop();
+          });
+        }
+      )
     );
-    setState(() {
-      _contacts.add(item);
+  }
+
+  @override
+  void initState() {
+    _loadRosterFromPrefs();
+    dbService.getListener(widget.user.uid).listen((QuerySnapshot s) {
+      s.documents.forEach((DocumentSnapshot d) {
+        print('Got doc:');
+        print(d.data);
+        var contact = _contacts.firstWhere((RosterItem item) => item.nickname == d.data['sender']);
+        contact.lastMessage = d.data['body'];
+      });
     });
+    super.initState();
   }
 
   @override
@@ -52,10 +105,6 @@ class _RosterState extends State<Roster> {
               child: new Text('Massajor', textAlign: TextAlign.center)
             ),
             new IconButton(
-              icon: new Icon(Icons.person_add),
-              onPressed: _addItem
-            ),
-            new IconButton(
               icon: new Icon(Icons.settings),
               onPressed: () => Navigator.of(context).pushNamed('/settings')
             )
@@ -66,7 +115,11 @@ class _RosterState extends State<Roster> {
         padding: new EdgeInsets.all(8.0),
         reverse: false,
         itemBuilder: (_, int idx) => _contacts[idx],
-        itemCount: _contacts.length,
+        itemCount: _contacts.length
+      ),
+      floatingActionButton: new FloatingActionButton(
+        onPressed: _addContact,
+        child: new Icon(Icons.person_add)
       )
     );
   }

@@ -37,26 +37,26 @@ class Login extends StatelessWidget {
             ),
             controller: _usernameController,
           ),
-          const SizedBox(height: 24.0),
-          new TextFormField(
-            decoration: const InputDecoration(
-              border: const UnderlineInputBorder(),
-              filled: true,
-              labelText: 'Password'
-            ),
-            obscureText: true,
-            controller: _pwdController,
-          ),
+//          const SizedBox(height: 24.0),
+//          new TextFormField(
+//            decoration: const InputDecoration(
+//              border: const UnderlineInputBorder(),
+//              filled: true,
+//              labelText: 'Password'
+//            ),
+//            obscureText: true,
+//            controller: _pwdController,
+//          ),
           const SizedBox(height: 24.0),
           new RaisedButton(
             onPressed: _handleSignIn,
             child: new Text('SIGN IN'),
           ),
-          const SizedBox(height: 12.0),
-          new FlatButton(
-            onPressed: null,
-            child: new Text('SIGN UP'),
-          )
+//          const SizedBox(height: 12.0),
+//          new FlatButton(
+//            onPressed: null,
+//            child: new Text('SIGN UP'),
+//          )
         ]
       )
     );

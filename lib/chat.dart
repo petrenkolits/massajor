@@ -121,7 +121,7 @@ class _ChatState extends State<Chat> with TickerProviderStateMixin {
         mainAxisAlignment: MainAxisAlignment.center,
         children: <Widget>[
           new Expanded(
-            child: new Text(widget.addressee, textAlign: TextAlign.center)
+            child: new Text("Chat with ${widget.addressee}", textAlign: TextAlign.center)
           ),
           new IconButton(
             icon: new Icon(Icons.settings),

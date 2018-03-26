@@ -2,28 +2,22 @@ import 'package:flutter/material.dart';
 
 typedef OnContactTap(String nickname);
 
-class RosterItem extends StatefulWidget {
-  const RosterItem({
+class RosterItem extends StatelessWidget {
+  RosterItem({
     Key key,
     this.nickname,
     this.lastMessage,
     this.onTap
   }) : super(key: key);
 
-  final String nickname;
-  final String lastMessage;
-  final OnContactTap onTap;
-
-  @override
-  State<StatefulWidget> createState() => new _RosterItemState();
-}
-
-class _RosterItemState extends State<RosterItem> {
+  String nickname;
+  String lastMessage;
+  OnContactTap onTap;
   String status;
 
   void _handleTap() {
-    if (widget.onTap != null) {
-      widget.onTap(widget.nickname);
+    if (onTap != null) {
+      onTap(nickname);
     }
   }
 
@@ -32,11 +26,11 @@ class _RosterItemState extends State<RosterItem> {
       leading: new CircleAvatar(
         backgroundImage: new NetworkImage('https://s.gravatar.com/avatar/91570d43ae82b83b5d68f9b452f931db?s=80')
       ),
-      title: new Text(widget.nickname),
+      title: new Text(nickname),
       subtitle: new Row(
         children: <Widget>[
           new Expanded(
-            child: new Text(widget.lastMessage)
+            child: new Text(lastMessage)
           )
         ],
       ),
