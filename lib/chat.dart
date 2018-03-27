@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:Massajor/chat-item.dart';
 import 'package:Massajor/chat-list-item.dart';
 import 'package:Massajor/db-service.dart';
@@ -27,14 +25,18 @@ class _ChatState extends State<Chat> with TickerProviderStateMixin {
   final TextEditingController _textController = new TextEditingController();
   final DbService dbService = new DbService();
   final List<AnimationController> _animationControllers = <AnimationController>[];
+  final Comparator<ChatItem> comparator =
+    (ChatItem a, ChatItem b) => b.createdAt.compareTo(a.createdAt);
 
   ChatItem _buildItem({
+    String id,
     @required String sender,
     @required String addressee,
     @required String body,
     @required DateTime createdAt
   }) {
     return new ChatItem(
+      id: id,
       sender: sender,
       addressee: addressee,
       currentUserUID: widget.user.uid,
@@ -45,6 +47,7 @@ class _ChatState extends State<Chat> with TickerProviderStateMixin {
 
   ChatItem _buildItemFromDocumentSnapshot(DocumentSnapshot d) {
     return _buildItem(
+      id: d.documentID,
       sender: d.data['sender'],
       addressee: d.data['addressee'],
       body: d.data['body'],
@@ -68,7 +71,8 @@ class _ChatState extends State<Chat> with TickerProviderStateMixin {
     DateTime createdAt
   }) {
     return _buildChatListItemFromChatItem(
-      _buildItem(sender: sender, addressee: addressee, body: body, createdAt: createdAt ?? new DateTime.now()));
+      _buildItem(sender: sender, addressee: addressee, body: body,
+        createdAt: createdAt ?? new DateTime.now()));
   }
 
   AnimationController _getAnimationController() {
@@ -91,9 +95,12 @@ class _ChatState extends State<Chat> with TickerProviderStateMixin {
 
   void _handleIncomingMessages(List<DocumentSnapshot> documents) {
     documents.forEach((DocumentSnapshot d) {
-      setState(() {
-        _messages.insert(0, _buildItemFromDocumentSnapshot(d));
-      });
+      if (_messages.indexWhere((ChatItem i) => i.id == d.documentID) == -1) {
+        setState(() {
+          _messages.insert(0, _buildItemFromDocumentSnapshot(d));
+          _messages.sort(comparator);
+        });
+      }
     });
   }
 

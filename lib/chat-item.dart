@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 
 class ChatItem {
   ChatItem({
+    this.id,
     @required this.sender,
     @required this.addressee,
     @required this.currentUserUID,
@@ -9,6 +10,7 @@ class ChatItem {
     this.createdAt
   });
 
+  String id;
   String body;
   String sender;
   String addressee;
