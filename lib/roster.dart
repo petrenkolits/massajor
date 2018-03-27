@@ -38,8 +38,7 @@ class _RosterState extends State<Roster> {
     return new RosterItem(
       key: new Key(uid),
       nickname: uid,
-      lastMessage: 'Last msg',
-      onTap: (String _uid) {_rosterItemTap(_uid);}
+      onTap: _rosterItemTap
     );
   }
 
@@ -49,6 +48,8 @@ class _RosterState extends State<Roster> {
       RosterItem item = _buildRosterItem(uid);
       setState(() {
         _contacts.add(item);
+        _contacts.last.lastMessage = '';
+        item.
       });
     });
   }
@@ -72,6 +73,7 @@ class _RosterState extends State<Roster> {
             _storeItemToPrefs(nickname);
             setState(() {
               _contacts.add(item);
+              _contacts.last.lastMessage = '';
             });
             Navigator.of(context).pop();
           });
@@ -80,16 +82,26 @@ class _RosterState extends State<Roster> {
     );
   }
 
+  void _handleIncomingMessages(List<DocumentSnapshot> documents) {
+    documents.forEach((DocumentSnapshot d) {
+      print('Got doc:');
+      print(d.data);
+      var idx = _contacts.indexWhere(
+          (RosterItem item) => item.nickname == d.data['sender']
+      );
+      if (idx != -1) {
+        setState(() {
+          _contacts[idx].lastMessage = d.data['body'];
+        });
+      }
+    });
+  }
+
   @override
   void initState() {
     _loadRosterFromPrefs();
     dbService.getListener(widget.user.uid).listen((QuerySnapshot s) {
-      s.documents.forEach((DocumentSnapshot d) {
-        print('Got doc:');
-        print(d.data);
-        var contact = _contacts.firstWhere((RosterItem item) => item.nickname == d.data['sender']);
-        contact.lastMessage = d.data['body'];
-      });
+      _handleIncomingMessages(s.documents);
     });
     super.initState();
   }

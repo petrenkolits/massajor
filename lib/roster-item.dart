@@ -1,23 +1,36 @@
 import 'package:flutter/material.dart';
 
-typedef OnContactTap(String nickname);
+typedef void OnContactTap(String nickname);
 
-class RosterItem extends StatelessWidget {
-  RosterItem({
+class RosterItem extends StatefulWidget {
+  const RosterItem({
     Key key,
     this.nickname,
     this.lastMessage,
     this.onTap
   }) : super(key: key);
 
-  String nickname;
-  String lastMessage;
-  OnContactTap onTap;
-  String status;
+  final String nickname;
+  final OnContactTap onTap;
+  final String lastMessage;
+
+  @override
+  State<StatefulWidget> createState() => new _RosterItemState();
+}
+
+class _RosterItemState extends State<RosterItem> {
+  String _lastMessage;
+
+  void initState() {
+    setState(() {
+      _lastMessage = widget.lastMessage;
+    });
+    super.initState();
+  }
 
   void _handleTap() {
-    if (onTap != null) {
-      onTap(nickname);
+    if (widget.onTap != null) {
+      widget.onTap(widget.nickname);
     }
   }
 
@@ -26,15 +39,15 @@ class RosterItem extends StatelessWidget {
       leading: new CircleAvatar(
         backgroundImage: new NetworkImage('https://s.gravatar.com/avatar/91570d43ae82b83b5d68f9b452f931db?s=80')
       ),
-      title: new Text(nickname),
+      title: new Text(widget.nickname),
       subtitle: new Row(
         children: <Widget>[
           new Expanded(
-            child: new Text(lastMessage)
+            child: new Text(_lastMessage)
           )
         ],
       ),
-      trailing: new Text(status ?? 'onine', textAlign: TextAlign.end),
+      trailing: new Text('onine', textAlign: TextAlign.end),
       onTap: _handleTap
     );
   }
