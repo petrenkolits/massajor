@@ -2,6 +2,7 @@ import 'package:Massajor/add-contact.dart';
 import 'package:Massajor/chat.dart';
 import 'package:Massajor/db-service.dart';
 import 'package:Massajor/roster-item.dart';
+import 'package:Massajor/roster-list-item.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -27,6 +28,21 @@ class _RosterState extends State<Roster> {
     return 'contacts_${widget.user.uid}';
   }
 
+  RosterItem _buildRosterItem(String uid) {
+    return new RosterItem(uid);
+  }
+
+  RosterListItem _buildRosterListItemFromItem(RosterItem item) {
+    return new RosterListItem(
+      item: item,
+      onTap: _rosterItemTap
+    );
+  }
+
+  RosterListItem _buildRosterListItem(String uid) {
+    return _buildRosterListItemFromItem(_buildRosterItem(uid));
+  }
+
   void _storeItemToPrefs(String uid) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     var uids = prefs.getStringList(storeKey) ?? <String>[];
@@ -34,22 +50,13 @@ class _RosterState extends State<Roster> {
     prefs.setStringList(storeKey, uids);
   }
 
-  RosterItem _buildRosterItem(String uid) {
-    return new RosterItem(
-      key: new Key(uid),
-      nickname: uid,
-      onTap: _rosterItemTap
-    );
-  }
-
   void _loadRosterFromPrefs() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     (prefs.getStringList(storeKey) ?? <String>[]).forEach((String uid) {
-      RosterItem item = _buildRosterItem(uid);
+      RosterListItem item = _buildRosterListItem(uid);
       setState(() {
-        _contacts.add(item);
-        _contacts.last.lastMessage = '';
-        item.
+        _contacts.add(item.item);
+        item.item.lastMessage = '';
       });
     });
   }
@@ -69,11 +76,10 @@ class _RosterState extends State<Roster> {
       new MaterialPageRoute<Null>(
         builder: (BuildContext ctx) {
           return new AddContact(onContactAdd: (String nickname) {
-            RosterItem item = _buildRosterItem(nickname);
+            RosterListItem item = _buildRosterListItem(nickname);
             _storeItemToPrefs(nickname);
             setState(() {
-              _contacts.add(item);
-              _contacts.last.lastMessage = '';
+              _contacts.add(item.item);
             });
             Navigator.of(context).pop();
           });
@@ -84,14 +90,10 @@ class _RosterState extends State<Roster> {
 
   void _handleIncomingMessages(List<DocumentSnapshot> documents) {
     documents.forEach((DocumentSnapshot d) {
-      print('Got doc:');
-      print(d.data);
-      var idx = _contacts.indexWhere(
-          (RosterItem item) => item.nickname == d.data['sender']
-      );
-      if (idx != -1) {
+      RosterItem item = _contacts.firstWhere((RosterItem i) => i.nickname == d.data['sender']);
+      if (item != null) {
         setState(() {
-          _contacts[idx].lastMessage = d.data['body'];
+          item.lastMessage = d.data['body'];
         });
       }
     });
@@ -100,7 +102,7 @@ class _RosterState extends State<Roster> {
   @override
   void initState() {
     _loadRosterFromPrefs();
-    dbService.getListener(widget.user.uid).listen((QuerySnapshot s) {
+    dbService.getRosterListener(widget.user.uid).listen((QuerySnapshot s) {
       _handleIncomingMessages(s.documents);
     });
     super.initState();
@@ -126,7 +128,7 @@ class _RosterState extends State<Roster> {
       body: new ListView.builder(
         padding: new EdgeInsets.all(8.0),
         reverse: false,
-        itemBuilder: (_, int idx) => _contacts[idx],
+        itemBuilder: (_, int idx) => _buildRosterListItemFromItem(_contacts[idx]),
         itemCount: _contacts.length
       ),
       floatingActionButton: new FloatingActionButton(

@@ -37,8 +37,13 @@ class DbService {
       .orderBy('createdAt').getDocuments();
   }
 
-  Stream<QuerySnapshot> getListener(String addresseeUID) {
+  Stream<QuerySnapshot> getRosterListener(String addresseeUID) {
     return _msgReference.where('addressee', isEqualTo: addresseeUID).snapshots;
+  }
+
+  Stream<QuerySnapshot> getChatListener(String senderUID, String addresseeUID) {
+    return _msgReference.where('sender', isEqualTo: senderUID)
+      .where('addressee', isEqualTo: addresseeUID).snapshots;
   }
 
   Future<String> _getToken(String uid) async {
