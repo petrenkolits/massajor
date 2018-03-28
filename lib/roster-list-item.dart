@@ -1,13 +1,14 @@
-import 'package:Massajor/roster-item.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'package:Massajor/roster-item.dart';
 
 typedef void OnContactTap(String nickname);
 
 class RosterListItem extends StatelessWidget {
   RosterListItem({
     Key key,
-    this.item,
-    this.onTap
+    @required this.item,
+    @required this.onTap
   }) : super(key: key);
 
   final RosterItem item;

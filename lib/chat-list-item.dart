@@ -32,6 +32,14 @@ class _ChatItemState extends State<ChatListItem> {
     return widget.item.isIncoming ? TextAlign.left : TextAlign.right;
   }
 
+  Widget _buildTitle() {
+    if (widget.item.isText) {
+      return new Text(widget.item.body, textAlign: textAlign);
+    } else {
+      return new Image.network(widget.item.body);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return new SizeTransition(
@@ -42,7 +50,7 @@ class _ChatItemState extends State<ChatListItem> {
       axisAlignment: 0.0,
       child: new ListTile(
         leading: widget.item.isIncoming ? avatar : null,
-        title: new Text(widget.item.body, textAlign: textAlign),
+        title: _buildTitle(),
         subtitle: new Text(dateFmtr.format(widget.item.createdAt), textAlign: textAlign)
       )
     );

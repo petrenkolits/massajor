@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:Massajor/add-contact.dart';
 import 'package:Massajor/chat.dart';
 import 'package:Massajor/db-service.dart';
@@ -50,7 +51,7 @@ class _RosterState extends State<Roster> {
     prefs.setStringList(storeKey, uids);
   }
 
-  void _loadRosterFromPrefs() async {
+  Future _loadRosterFromPrefs() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     (prefs.getStringList(storeKey) ?? <String>[]).forEach((String uid) {
       RosterListItem item = _buildRosterListItem(uid);
@@ -59,6 +60,7 @@ class _RosterState extends State<Roster> {
         item.item.lastMessage = '';
       });
     });
+    return;
   }
 
   void _rosterItemTap(String nickname) {
@@ -93,7 +95,7 @@ class _RosterState extends State<Roster> {
       RosterItem item = _contacts.firstWhere((RosterItem i) => i.nickname == d.data['sender']);
       if (item != null) {
         setState(() {
-          item.lastMessage = d.data['body'];
+          item.lastMessage = d.data['type'] == 'text' ? d.data['body'] : '<file>';
         });
       }
     });
@@ -101,9 +103,10 @@ class _RosterState extends State<Roster> {
 
   @override
   void initState() {
-    _loadRosterFromPrefs();
-    dbService.getRosterListener(widget.user.uid).listen((QuerySnapshot s) {
-      _handleIncomingMessages(s.documents);
+    _loadRosterFromPrefs().then((_) {
+      dbService.getRosterListener(widget.user.uid).listen((QuerySnapshot s) {
+        _handleIncomingMessages(s.documents);
+      });
     });
     super.initState();
   }

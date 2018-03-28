@@ -1,14 +1,17 @@
-import 'dart:async';
+import 'dart:async' show Future, Stream;
 import 'dart:convert';
 import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+const String getTokenURL = 'https://us-central1-massajor-9e764.cloudfunctions.net/getToken';
+
 class DbService {
   static final DbService _instance = new DbService._internal();
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  FirebaseUser user;
   final CollectionReference _msgReference = Firestore.instance.collection('messages');
+  final CollectionReference _evtReference = Firestore.instance.collection('events');
+  FirebaseUser user;
 
   DbService._internal();
 
@@ -21,11 +24,12 @@ class DbService {
     return await _auth.signInWithCustomToken(token: token);
   }
 
-  void sendMessage(String senderUID, String addresseeUID, String body) {
+  void sendMessage(String senderUID, String addresseeUID, String body, String type) {
     _msgReference.document().setData({
       'sender': senderUID,
       'addressee': addresseeUID,
       'body': body,
+      'type': type,
       'createdAt': new DateTime.now()
     });
   }
@@ -38,18 +42,43 @@ class DbService {
   }
 
   Stream<QuerySnapshot> getRosterListener(String addresseeUID) {
-    return _msgReference.where('addressee', isEqualTo: addresseeUID).snapshots;
+    return _msgReference.where('addressee', isEqualTo: addresseeUID)
+      .orderBy('createdAt', descending: true).snapshots;
   }
 
   Stream<QuerySnapshot> getChatListener(String senderUID, String addresseeUID) {
     return _msgReference.where('sender', isEqualTo: senderUID)
+      .where('addressee', isEqualTo: addresseeUID)
+      .orderBy('createdAt', descending: true).snapshots;
+  }
+
+  Stream<QuerySnapshot> getChatEventsListener(String senderUID, String addresseeUID) {
+    return _evtReference.where('sender', isEqualTo: senderUID)
       .where('addressee', isEqualTo: addresseeUID).snapshots;
+  }
+
+  void sendEvent(String senderUID, String addresseeUID, String type) {
+    _evtReference.document().setData({
+      'sender': senderUID,
+      'addressee': addresseeUID,
+      'type': type,
+      'createdAt': new DateTime.now()
+    });
+  }
+
+  void deleteEvent(String senderUID, String addresseeUID, String type) async {
+    QuerySnapshot s = await _evtReference.where('sender', isEqualTo: senderUID)
+      .where('addressee', isEqualTo: addresseeUID)
+      .where('type', isEqualTo: type).getDocuments();
+    s.documents.forEach((DocumentSnapshot d) {
+      d.reference.delete();
+    });
   }
 
   Future<String> _getToken(String uid) async {
     print("Got UID: '$uid'");
     var client = new HttpClient();
-    Uri uri = Uri.parse("https://us-central1-massajor-9e764.cloudfunctions.net/getToken?uid=$uid");
+    Uri uri = Uri.parse("$getTokenURL?uid=$uid");
     var req = await client.getUrl(uri);
     var resp = await req.close();
     return await resp.transform(UTF8.decoder).join();
