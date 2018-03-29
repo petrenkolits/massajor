@@ -11,8 +11,16 @@ class ChatListItem extends StatefulWidget {
     @required this.animationController
   }) : super(key: key);
 
+  const ChatListItem.fromItem(ChatItem item, AnimationController animationController):
+    item = item,
+    animationController = animationController;
+
   final ChatItem item;
   final AnimationController animationController;
+
+  DateTime get createdAt {
+    return item.createdAt;
+  }
 
   @override
   State<StatefulWidget> createState() => new _ChatItemState();

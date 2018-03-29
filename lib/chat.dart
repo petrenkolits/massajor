@@ -7,8 +7,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:Massajor/chat-item.dart';
 import 'package:Massajor/chat-list-item.dart';
-import 'package:Massajor/chat-title-bar.dart';
-import 'package:Massajor/chat-title-bar-data.dart';
 import 'package:Massajor/db-service.dart';
 import 'package:Massajor/cloud-storage.dart';
 
@@ -27,70 +25,25 @@ class Chat extends StatefulWidget {
 }
 
 class _ChatState extends State<Chat> with TickerProviderStateMixin {
-  final List<ChatItem> _messages = <ChatItem>[];
+  final List<ChatListItem> _messages = <ChatListItem>[];
   final TextEditingController _textController = new TextEditingController();
   final DbService dbService = new DbService();
   final CloudStorage cloudStorage = new CloudStorage();
   final List<AnimationController> _animationControllers = <AnimationController>[];
-  final Comparator<ChatItem> comparator =
-    (ChatItem a, ChatItem b) => b.createdAt.compareTo(a.createdAt);
+  final Comparator<ChatListItem> comparator =
+    (ChatListItem a, ChatListItem b) => b.createdAt.compareTo(a.createdAt);
   RestartableTimer _typingTimer;
-  ChatTitleBarData _chatTitleBarData;
+  bool _isTyping = false;
 
   RestartableTimer get typingTimer {
     _typingTimer ??= new RestartableTimer(const Duration(seconds: 3), _disposeTypingEvent);
     return _typingTimer;
   }
 
-  ChatItem _buildItem({
-    String id,
-    @required String sender,
-    @required String addressee,
-    @required String body,
-    String type,
-    DateTime createdAt
-  }) {
-    return new ChatItem(
-      id: id,
-      sender: sender,
-      addressee: addressee,
-      currentUserUID: widget.user.uid,
-      body: body,
-      type: type ?? 'text',
-      createdAt: createdAt ?? new DateTime.now()
-    );
-  }
-
-  ChatItem _buildItemFromDocumentSnapshot(DocumentSnapshot d) {
-    return _buildItem(
-      id: d.documentID,
-      sender: d.data['sender'],
-      addressee: d.data['addressee'],
-      body: d.data['body'],
-      type: d.data['type'],
-      createdAt: d.data['createdAt']
-    );
-  }
-
   ChatListItem _buildChatListItemFromChatItem(ChatItem chatItem) {
-    ChatListItem item = new ChatListItem(
-      item: chatItem,
-      animationController: _getAnimationController()
-    );
+    ChatListItem item = new ChatListItem.fromItem(chatItem, _getAnimationController());
     item.animationController.forward();
     return item;
-  }
-
-  ChatListItem _buildChatListItem({
-    @required String sender,
-    @required String addressee,
-    @required String body,
-    String type,
-    DateTime createdAt
-  }) {
-    return _buildChatListItemFromChatItem(
-      _buildItem(sender: sender, addressee: addressee, body: body, type: type,
-        createdAt: createdAt));
   }
 
   AnimationController _getAnimationController() {
@@ -143,10 +96,11 @@ class _ChatState extends State<Chat> with TickerProviderStateMixin {
   void _handleIncomingMessages(List<DocumentChange> dcl) {
     dcl.forEach((DocumentChange dc) {
       if (dc.type == DocumentChangeType.added) {
-        if (_messages.indexWhere((ChatItem i) => i.id == dc.document.documentID) == -1) {
+        if (_messages.indexWhere((ChatListItem i) => i.item.id == dc.document.documentID) == -1) {
           setState(() {
-            _chatTitleBarData.isTyping = false;
-            _messages.insert(0, _buildItemFromDocumentSnapshot(dc.document));
+            _isTyping = false;
+            _messages.insert(0, _buildChatListItemFromChatItem(
+              ChatItem.fromDS(widget.user.uid, dc.document)));
             _messages.sort(comparator);
           });
         }
@@ -160,11 +114,11 @@ class _ChatState extends State<Chat> with TickerProviderStateMixin {
       if (dc.document.data['type'] == 'typing') {
         if (dc.type == DocumentChangeType.added) {
           setState(() {
-            _chatTitleBarData.isTyping = true;
+            _isTyping = true;
           });
         } else if (dc.type == DocumentChangeType.removed) {
           setState(() {
-            _chatTitleBarData.isTyping = false;
+            _isTyping = false;
           });
         }
       }
@@ -214,6 +168,18 @@ class _ChatState extends State<Chat> with TickerProviderStateMixin {
     );
   }
 
+  Widget _buildChatHeader(BuildContext context) {
+    return new AppBar(
+      title: new Text("Chat with ${widget.addressee} : ${_isTyping ? 'typing...' : 'idle'}"),
+      actions: <Widget>[
+        new IconButton(
+          icon: new Icon(Icons.settings),
+          onPressed: () => Navigator.of(context).pushNamed('/settings')
+        )
+      ]
+    );
+  }
+
   Widget _buildChatBody(BuildContext context) {
     return new Column(
       children: <Widget>[
@@ -221,7 +187,7 @@ class _ChatState extends State<Chat> with TickerProviderStateMixin {
           child: new ListView.builder(
             padding: new EdgeInsets.all(8.0),
             reverse: true,
-            itemBuilder: (_, int index) => _buildChatListItemFromChatItem(_messages[index]),
+            itemBuilder: (_, int index) => _messages[index],
             itemCount: _messages.length,
           ),
         ),
@@ -235,15 +201,8 @@ class _ChatState extends State<Chat> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildChatHeader(BuildContext context) {
-    return new AppBar(
-      title: new ChatTitleBar(data: _chatTitleBarData).build(context)
-    );
-  }
-
   @override
   initState() {
-    _chatTitleBarData = new ChatTitleBarData(title: "Chat with ${widget.addressee}");
     dbService.loadMessages(widget.user.uid, widget.addressee).then((QuerySnapshot s) {
       _handleIncomingMessages(s.documentChanges);
     });

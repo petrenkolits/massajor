@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ChatItem {
   ChatItem({
@@ -11,7 +12,15 @@ class ChatItem {
     this.createdAt
   });
 
-  String id;
+  ChatItem.fromDS(String currentUserUID, DocumentSnapshot d):
+    id = d.documentID,
+    sender = d.data['sender'],
+    addressee = d.data['addressee'],
+    body = d.data['body'],
+    type = d.data['type'],
+    createdAt = d.data['createdAt'];
+
+  final String id;
   String body;
   String sender;
   String addressee;
