@@ -29,7 +29,7 @@ class RosterListItem extends StatelessWidget {
       subtitle: new Row(
         children: <Widget>[
           new Expanded(
-            child: new Text(item.lastMessage)
+            child: new Text(item.lastMessage ?? '')
           )
         ],
       ),

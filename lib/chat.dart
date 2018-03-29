@@ -7,6 +7,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:Massajor/chat-item.dart';
 import 'package:Massajor/chat-list-item.dart';
+import 'package:Massajor/chat-title-bar.dart';
+import 'package:Massajor/chat-title-bar-data.dart';
 import 'package:Massajor/db-service.dart';
 import 'package:Massajor/cloud-storage.dart';
 
@@ -33,7 +35,7 @@ class _ChatState extends State<Chat> with TickerProviderStateMixin {
   final Comparator<ChatItem> comparator =
     (ChatItem a, ChatItem b) => b.createdAt.compareTo(a.createdAt);
   RestartableTimer _typingTimer;
-  bool _isTyping = false;
+  ChatTitleBarData _chatTitleBarData;
 
   RestartableTimer get typingTimer {
     _typingTimer ??= new RestartableTimer(const Duration(seconds: 3), _disposeTypingEvent);
@@ -143,7 +145,7 @@ class _ChatState extends State<Chat> with TickerProviderStateMixin {
       if (dc.type == DocumentChangeType.added) {
         if (_messages.indexWhere((ChatItem i) => i.id == dc.document.documentID) == -1) {
           setState(() {
-            _isTyping = false;
+            _chatTitleBarData.isTyping = false;
             _messages.insert(0, _buildItemFromDocumentSnapshot(dc.document));
             _messages.sort(comparator);
           });
@@ -158,11 +160,11 @@ class _ChatState extends State<Chat> with TickerProviderStateMixin {
       if (dc.document.data['type'] == 'typing') {
         if (dc.type == DocumentChangeType.added) {
           setState(() {
-            _isTyping = true;
+            _chatTitleBarData.isTyping = true;
           });
         } else if (dc.type == DocumentChangeType.removed) {
           setState(() {
-            _isTyping = false;
+            _chatTitleBarData.isTyping = false;
           });
         }
       }
@@ -235,24 +237,13 @@ class _ChatState extends State<Chat> with TickerProviderStateMixin {
 
   Widget _buildChatHeader(BuildContext context) {
     return new AppBar(
-      title: new Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: <Widget>[
-          new Expanded(
-            child: new Text("Chat with ${widget.addressee}", textAlign: TextAlign.center)
-          ),
-          new Text(_isTyping ? 'typing...' : 'idle'),
-          new IconButton(
-            icon: new Icon(Icons.settings),
-            onPressed: () => Navigator.of(context).pushNamed('/settings')
-          )
-        ],
-      ),
+      title: new ChatTitleBar(data: _chatTitleBarData).build(context)
     );
   }
 
   @override
   initState() {
+    _chatTitleBarData = new ChatTitleBarData(title: "Chat with ${widget.addressee}");
     dbService.loadMessages(widget.user.uid, widget.addressee).then((QuerySnapshot s) {
       _handleIncomingMessages(s.documentChanges);
     });
