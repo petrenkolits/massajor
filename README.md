@@ -1,8 +1,6 @@
-# fluttertest
+Sample mobile (android/ios) app built with flutter.io and Google Firebase services such as:
+- Cloud Firestore
+- Storage
+- and some cloud functions
 
-A new Flutter project.
-
-## Getting Started
-
-For help getting started with Flutter, view our online
-[documentation](https://flutter.io/).
+to implement real-time chat with offline capabilities and file transfering.
