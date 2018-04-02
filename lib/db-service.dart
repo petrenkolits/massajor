@@ -85,11 +85,20 @@ class DbService {
     });
   }
 
-  void setFCMRegistration(String senderUID, String token) {
-    _fcmReference.document().setData({
-      'sender': senderUID,
-      'token': token
-    });
+  void setFCMRegistration(String senderUID, String token) async {
+    var qs = await _fcmReference.where('sender', isEqualTo: senderUID).limit(1).getDocuments();
+    if (qs.documents.length != 0) {
+      qs.documents.first.reference.updateData({
+        'token': token,
+        'updatedAt': new DateTime.now().toUtc()
+      });
+    } else {
+      _fcmReference.document().setData({
+        'sender': senderUID,
+        'token': token,
+        'updatedAt': new DateTime.now().toUtc()
+      });
+    }
   }
 
   Future<String> _getToken(String uid) async {
