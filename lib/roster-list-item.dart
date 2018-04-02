@@ -3,20 +3,30 @@ import 'package:flutter/foundation.dart';
 import 'package:Massajor/roster-item.dart';
 
 typedef void OnContactTap(String nickname);
+typedef void OnRosterItemAction(RosterListItem item, RosterItemActions actions);
+enum RosterItemActions { remove, info }
 
 class RosterListItem extends StatelessWidget {
   RosterListItem({
     Key key,
     @required this.item,
-    @required this.onTap
+    @required this.onTap,
+    @required this.onAction
   }) : super(key: key);
 
   final RosterItem item;
   final OnContactTap onTap;
+  final OnRosterItemAction onAction;
 
   void _handleTap() {
     if (onTap != null) {
       onTap(item.nickname);
+    }
+  }
+
+  void _handleAction(RosterItemActions action) {
+    if (onAction != null) {
+      onAction(this, action);
     }
   }
 
@@ -33,7 +43,20 @@ class RosterListItem extends StatelessWidget {
           )
         ],
       ),
-      trailing: new Text('onine', textAlign: TextAlign.end),
+      trailing: new PopupMenuButton<RosterItemActions>(
+        onSelected: _handleAction,
+        itemBuilder: (BuildContext context) => <PopupMenuEntry<RosterItemActions>>[
+          const PopupMenuItem<RosterItemActions>(
+            value: RosterItemActions.info,
+            child: const Text('Info'),
+            enabled: false
+          ),
+          const PopupMenuItem<RosterItemActions>(
+            value: RosterItemActions.remove,
+            child: const Text('Remove')
+          ),
+        ]
+      ),
       onTap: _handleTap
     );
   }

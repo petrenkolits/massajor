@@ -25,9 +25,7 @@ class _RosterState extends State<Roster> {
   final List<RosterListItem> _contacts = <RosterListItem>[];
   final DbService dbService = new DbService();
 
-  get storeKey {
-    return 'contacts_${widget.user.uid}';
-  }
+  get storeKey => 'contacts_${widget.user.uid}';
 
   RosterItem _buildRosterItem(String uid) {
     return new RosterItem(uid);
@@ -36,7 +34,8 @@ class _RosterState extends State<Roster> {
   RosterListItem _buildRosterListItemFromItem(RosterItem item) {
     return new RosterListItem(
       item: item,
-      onTap: _rosterItemTap
+      onTap: _rosterItemTap,
+      onAction: _handleRosterItemAction
     );
   }
 
@@ -48,6 +47,13 @@ class _RosterState extends State<Roster> {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     var uids = prefs.getStringList(storeKey) ?? <String>[];
     uids.add(uid);
+    prefs.setStringList(storeKey, uids);
+  }
+
+  void _removeItemFromPrefs(String uid) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    var uids = prefs.getStringList(storeKey);
+    uids.remove(uid);
     prefs.setStringList(storeKey, uids);
   }
 
@@ -71,6 +77,51 @@ class _RosterState extends State<Roster> {
         }
       )
     );
+  }
+
+  void _handleRosterItemAction(RosterListItem item, RosterItemActions action) {
+    var actionsMap = <RosterItemActions, Function>{
+      RosterItemActions.info: _rosterItemInfo,
+      RosterItemActions.remove: _rosterItemRemove
+    };
+    actionsMap[action](item);
+  }
+
+  void _rosterItemInfo(RosterListItem item) {
+    print("Info for $item");
+  }
+
+  void _rosterItemRemove(RosterListItem item) {
+    showDialog<Null>(
+      context: context,
+      barrierDismissible: false, // user must tap button!
+      builder: (BuildContext context) => new AlertDialog(
+        title: new Text('Are you sure?'),
+        content: new Text("Remove '${item.item.nickname}'?"),
+        actions: <Widget>[
+          new FlatButton(
+            child: new Text('REMOVE'),
+            onPressed: () {
+              _handleRemoveAlert(item);
+              Navigator.of(context).pop();
+            },
+          ),
+          new FlatButton(
+            child: new Text('CANCEL'),
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _handleRemoveAlert(RosterListItem item) {
+    setState(() {
+      _contacts.remove(item);
+    });
+    _removeItemFromPrefs(item.item.nickname);
   }
 
   void _handleAddContact() {
