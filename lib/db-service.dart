@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:Massajor/chat-item.dart';
 
 const String getTokenURL = 'https://us-central1-massajor-9e764.cloudfunctions.net/getToken';
 
@@ -11,6 +12,7 @@ class DbService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final CollectionReference _msgReference = Firestore.instance.collection('messages');
   final CollectionReference _evtReference = Firestore.instance.collection('events');
+  final CollectionReference _fcmReference = Firestore.instance.collection('fcmRegistrations');
   FirebaseUser user;
 
   DbService._internal();
@@ -24,13 +26,21 @@ class DbService {
     return await _auth.signInWithCustomToken(token: token);
   }
 
-  void sendMessage(String senderUID, String addresseeUID, String body, String type) {
+  void sendMessage(ChatItem item) {
     _msgReference.document().setData({
-      'sender': senderUID,
-      'addressee': addresseeUID,
-      'body': body,
-      'type': type,
-      'createdAt': new DateTime.now()
+      'sender': item.sender,
+      'addressee': item.addressee,
+      'body': item.body,
+      'type': item.type,
+      'createdAt': item.createdAt,
+      'status': item.status
+    });
+  }
+
+  void setMessageRead(String docID) {
+    print('Setting msg_id: ${docID} to read');
+    _msgReference.document(docID).updateData({
+      'status': 'read'
     });
   }
 
@@ -75,12 +85,19 @@ class DbService {
     });
   }
 
+  void setFCMRegistration(String senderUID, String token) {
+    _fcmReference.document().setData({
+      'sender': senderUID,
+      'token': token
+    });
+  }
+
   Future<String> _getToken(String uid) async {
     print("Got UID: '$uid'");
     var client = new HttpClient();
     Uri uri = Uri.parse("$getTokenURL?uid=$uid");
     var req = await client.getUrl(uri);
     var resp = await req.close();
-    return await resp.transform(UTF8.decoder).join();
+    return await resp.transform(utf8.decoder).join();
   }
 }

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:async/async.dart';
 import 'package:flutter/material.dart';
@@ -32,8 +33,16 @@ class _ChatState extends State<Chat> with TickerProviderStateMixin {
   final List<AnimationController> _animationControllers = <AnimationController>[];
   final Comparator<ChatListItem> comparator =
     (ChatListItem a, ChatListItem b) => b.createdAt.compareTo(a.createdAt);
+
   RestartableTimer _typingTimer;
   bool _isTyping = false;
+
+  StreamSubscription<QuerySnapshot> _incomingMsgListener;
+  StreamSubscription<QuerySnapshot> _outgoingMsgListener;
+  StreamSubscription<QuerySnapshot> _eventsListener;
+
+  get userId => widget.user.uid;
+  get addressee => widget.addressee;
 
   RestartableTimer get typingTimer {
     _typingTimer ??= new RestartableTimer(const Duration(seconds: 3), _disposeTypingEvent);
@@ -56,8 +65,10 @@ class _ChatState extends State<Chat> with TickerProviderStateMixin {
   }
 
   void _sendMessage(text, [String type = 'text']) {
-    dbService.sendMessage(widget.user.uid, widget.addressee, text, type);
-    // ChatListItem item = _buildChatListItem(sender: widget.user.uid,
+    ChatItem item = new ChatItem(sender: userId, addressee: addressee, currentUserUID: userId,
+      body: text);
+    dbService.sendMessage(item);
+    // ChatListItem item = _buildChatListItem(sender: userId,
     //   addressee: widget.addressee, body: text, type: type);
     // setState(() {
     //   _messages.insert(0, item.item);
@@ -76,19 +87,23 @@ class _ChatState extends State<Chat> with TickerProviderStateMixin {
   void _sendTypingEvent() {
     print('typing...');
     typingTimer.reset();
-    dbService.sendEvent(widget.user.uid, widget.addressee, 'typing');
+    dbService.sendEvent(userId, widget.addressee, 'typing');
   }
 
   void _disposeTypingEvent() {
     print('typing stopped;');
     typingTimer.cancel();
-    dbService.deleteEvent(widget.user.uid, widget.addressee, 'typing');
+    dbService.deleteEvent(userId, widget.addressee, 'typing');
+  }
+
+  void _setMessageRead(String docID) {
+    dbService.setMessageRead(docID);
   }
 
   void _handleAttachment() async {
     File _fileName = await ImagePicker.pickImage();
     if (_fileName != null) {
-      Uri uri = await cloudStorage.uploadFile(widget.user.uid, _fileName);
+      Uri uri = await cloudStorage.uploadFile(userId, _fileName);
       _sendMessage(uri.toString(), 'photo');
     }
   }
@@ -97,12 +112,16 @@ class _ChatState extends State<Chat> with TickerProviderStateMixin {
     dcl.forEach((DocumentChange dc) {
       if (dc.type == DocumentChangeType.added) {
         if (_messages.indexWhere((ChatListItem i) => i.item.id == dc.document.documentID) == -1) {
+          ChatListItem item = _buildChatListItemFromChatItem(
+            ChatItem.fromDS(userId, dc.document));
           setState(() {
             _isTyping = false;
-            _messages.insert(0, _buildChatListItemFromChatItem(
-              ChatItem.fromDS(widget.user.uid, dc.document)));
+            _messages.insert(0, item);
             _messages.sort(comparator);
           });
+          if (item.item.sender != userId) {
+            _setMessageRead(item.item.id);
+          }
         }
       }
     });
@@ -201,23 +220,27 @@ class _ChatState extends State<Chat> with TickerProviderStateMixin {
     );
   }
 
-  @override
-  initState() {
-    dbService.loadMessages(widget.user.uid, widget.addressee).then((QuerySnapshot s) {
+  void _initListeners(){
+    _incomingMsgListener = dbService.getChatListener(widget.addressee, userId).listen((QuerySnapshot s) {
       _handleIncomingMessages(s.documentChanges);
     });
-    dbService.loadMessages(widget.addressee, widget.user.uid).then((QuerySnapshot s) {
+    _outgoingMsgListener = dbService.getChatListener(userId, widget.addressee).listen((QuerySnapshot s) {
       _handleIncomingMessages(s.documentChanges);
     });
-    dbService.getChatListener(widget.addressee, widget.user.uid).listen((QuerySnapshot s) {
-      _handleIncomingMessages(s.documentChanges);
-    });
-    dbService.getChatListener(widget.user.uid, widget.addressee).listen((QuerySnapshot s) {
-      _handleIncomingMessages(s.documentChanges);
-    });
-    dbService.getChatEventsListener(widget.addressee, widget.user.uid).listen((QuerySnapshot s) {
+    _eventsListener = dbService.getChatEventsListener(widget.addressee, userId).listen((QuerySnapshot s) {
       _handleIncomingEvents(s.documentChanges);
     });
+  }
+
+  @override
+  initState() {
+    dbService.loadMessages(userId, widget.addressee).then((QuerySnapshot s) {
+      _handleIncomingMessages(s.documentChanges);
+    });
+    dbService.loadMessages(widget.addressee, userId).then((QuerySnapshot s) {
+      _handleIncomingMessages(s.documentChanges);
+    });
+    _initListeners();
     super.initState();
   }
 
@@ -231,7 +254,11 @@ class _ChatState extends State<Chat> with TickerProviderStateMixin {
 
   @override
   void dispose() {
+    print('dispose');
     _animationControllers.forEach((AnimationController c) => c.dispose());
+    _incomingMsgListener.cancel();
+    _outgoingMsgListener.cancel();
+    _eventsListener.cancel();
     super.dispose();
   }
 }

@@ -22,7 +22,7 @@ class Roster extends StatefulWidget {
 }
 
 class _RosterState extends State<Roster> {
-  final List<RosterItem> _contacts = <RosterItem>[];
+  final List<RosterListItem> _contacts = <RosterListItem>[];
   final DbService dbService = new DbService();
 
   get storeKey {
@@ -56,7 +56,7 @@ class _RosterState extends State<Roster> {
     (prefs.getStringList(storeKey) ?? <String>[]).forEach((String uid) {
       RosterListItem item = _buildRosterListItem(uid);
       setState(() {
-        _contacts.add(item.item);
+        _contacts.add(item);
         item.item.lastMessage = '';
       });
     });
@@ -73,16 +73,12 @@ class _RosterState extends State<Roster> {
     );
   }
 
-  void _addContact() {
+  void _handleAddContact() {
     Navigator.of(context).push(
       new MaterialPageRoute<Null>(
         builder: (BuildContext ctx) {
           return new AddContact(onContactAdd: (String nickname) {
-            RosterListItem item = _buildRosterListItem(nickname);
-            _storeItemToPrefs(nickname);
-            setState(() {
-              _contacts.add(item.item);
-            });
+            _addContact(nickname);
             Navigator.of(context).pop();
           });
         }
@@ -90,14 +86,24 @@ class _RosterState extends State<Roster> {
     );
   }
 
+  RosterListItem _addContact(String nickname) {
+    RosterListItem item = _buildRosterListItem(nickname);
+    _storeItemToPrefs(nickname);
+    setState(() {
+      _contacts.add(item);
+    });
+    return item;
+  }
+
   void _handleIncomingMessages(List<DocumentSnapshot> documents) {
     documents.forEach((DocumentSnapshot d) {
-      RosterItem item = _contacts.firstWhere((RosterItem i) => i.nickname == d.data['sender']);
-      if (item != null) {
-        setState(() {
-          item.lastMessage = d.data['type'] == 'text' ? d.data['body'] : '<file>';
-        });
-      }
+      RosterListItem item = _contacts.firstWhere(
+        (RosterListItem i) => i.item.nickname == d.data['sender'],
+        orElse: () => _addContact(d.data['sender'])
+      );
+      setState(() {
+        item.item.lastMessage = d.data['type'] == 'text' ? d.data['body'] : '<file>';
+      });
     });
   }
 
@@ -131,11 +137,11 @@ class _RosterState extends State<Roster> {
       body: new ListView.builder(
         padding: new EdgeInsets.all(8.0),
         reverse: false,
-        itemBuilder: (_, int idx) => _buildRosterListItemFromItem(_contacts[idx]),
+        itemBuilder: (_, int idx) => _contacts[idx],
         itemCount: _contacts.length
       ),
       floatingActionButton: new FloatingActionButton(
-        onPressed: _addContact,
+        onPressed: _handleAddContact,
         child: new Icon(Icons.person_add)
       )
     );
